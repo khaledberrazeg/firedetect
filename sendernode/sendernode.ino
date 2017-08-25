@@ -18,12 +18,18 @@
 #include <RF24.h>
 #include <SPI.h>
 
-RF24 radio(7,8);                    // nRF24L01(+) radio attached using Getting Started board 
+#include <IRremote.h>
 
-RF24Network network(radio);          // Network uses that radio
+int IR_PIN = 5; // the pin of the IR receiver
+IRrecv recepteur(IR_PIN);
+decode_results results;
+RF24 radio(7,8);                   
 
-const uint16_t this_node = 01;        // Address of our node in Octal format
-const uint16_t other_node = 00;       // Address of the other node in Octal format
+RF24Network network(radio);        
+
+
+const uint16_t this_node = 01;        
+const uint16_t other_node = 00;      
 
 const unsigned long interval = 2000; //ms  // How often to send 'hello world to the other unit
 
@@ -37,15 +43,17 @@ struct payload_t {                  // Structure of our payload
    //String payloadstring;
    int messageInt;
 };
-int message=1234;
+int message=1;
 void setup(void)
 {
   Serial.begin(57600);
-  Serial.println("RF24Network/examples/helloworld_tx/");
+//  Serial.begin(2000000);
+  Serial.println("RF24Network Bda yconecti");
  
   SPI.begin();
   radio.begin();
   network.begin(/*channel*/ 90, /*node address*/ this_node);
+  recepteur.enableIRIn();
 }
 
 void loop() {
@@ -58,14 +66,27 @@ void loop() {
   {
     last_sent = now;
 
-    Serial.print("Sending...");
+   // Serial.print("Sending...");
     payload_t payload = { message };
        //payload_t payload = { millis(), packets_sent++ };
     RF24NetworkHeader header(/*to node*/ other_node);
+    delay(200);
+    if (recepteur.decode(&results))
+    {
+        Serial.println("Zifet");
+     //Serial.println(results.value, HEX);
+     message=1;
+     payload = { message };
+      bool ok = network.write(header,&payload,sizeof(payload));
+     Serial.println("Zifet");
+    }
+     recepteur.resume();
+          message=-1;
+     payload = { message };
     bool ok = network.write(header,&payload,sizeof(payload));
-    if (ok)
-      Serial.println("ok.");
-    else
-      Serial.println("failed.");
+    //if (ok)
+      //Serial.println("ok.");
+    //else
+      //Serial.println("failed.");
   }
 }
