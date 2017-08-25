@@ -20,9 +20,16 @@
 
 #include <IRremote.h>
 
-int IR_PIN = 5; // the pin of the IR receiver
+int IR_PIN = 5; 
+
+int led = 4; 
+
+ 
+int IR_PIN_CFG = 2; // configIR
+const int gasPin = A0; 
 IRrecv recepteur(IR_PIN);
-decode_results results;
+IRrecv recepteur_config(IR_PIN_CFG);
+decode_results results,results_tmp;
 RF24 radio(7,8);                   
 
 RF24Network network(radio);        
@@ -38,55 +45,89 @@ unsigned long packets_sent;          // How many have we sent already
 
 
 struct payload_t {                  // Structure of our payload
- // unsigned long ms;
-  //unsigned long counter;
+
    //String payloadstring;
    int messageInt;
+  
 };
 int message=1;
+ int minimum_ppm=150;
+ int gas_value=0;
+   bool conf_mode=false;
 void setup(void)
 {
   Serial.begin(57600);
-//  Serial.begin(2000000);
+
   Serial.println("RF24Network Bda yconecti");
- 
+ pinMode(led, OUTPUT);
+ delay(1000);
   SPI.begin();
   radio.begin();
   network.begin(/*channel*/ 90, /*node address*/ this_node);
-  recepteur.enableIRIn();
+ recepteur.enableIRIn();
+   recepteur_config.enableIRIn();
+   
 }
 
 void loop() {
-  
+
+  delay(100); // bilach
+   
+
+
+      results=results_tmp;
   network.update();                          // Check the network regularly
 
   
-  unsigned long now = millis();              // If it's time to send a message, send it!
-  if ( now - last_sent >= interval  )
-  {
-    last_sent = now;
 
    // Serial.print("Sending...");
     payload_t payload = { message };
-       //payload_t payload = { millis(), packets_sent++ };
+  
     RF24NetworkHeader header(/*to node*/ other_node);
-    delay(200);
+   
+     //   Serial.println();
     if (recepteur.decode(&results))
     {
-        Serial.println("Zifet");
-     //Serial.println(results.value, HEX);
+        delay(200);
+        Serial.println(results.value, HEX);
      message=1;
      payload = { message };
       bool ok = network.write(header,&payload,sizeof(payload));
-     Serial.println("Zifet");
+    
+     if (ok)
+     { while (true)
+      {
+         Serial.println("Zifet infrarouge bel 1");
+        network.write(header,&payload,sizeof(payload));
+        Serial.println(message);
+   
+      }
+     }
+      recepteur.resume();
     }
-     recepteur.resume();
+
+
+    
+    recepteur.resume();
+    gas_value=analogRead(gasPin);
+   Serial.println(gas_value);
+     if ( gas_value  >=minimum_ppm)
+     {
+    message=analogRead(gasPin);
+     payload = { message };
+      bool ok = network.write(header,&payload,sizeof(payload));
+  
+       if (ok)
+      while (true)
+      {
+           Serial.println("Zifet el gaz bel la valeur du ppm");
+        network.write(header,&payload,sizeof(payload));
+        Serial.println(message);
+      }
+     }
           message=-1;
      payload = { message };
     bool ok = network.write(header,&payload,sizeof(payload));
-    //if (ok)
-      //Serial.println("ok.");
-    //else
-      //Serial.println("failed.");
-  }
+    
+  
 }
