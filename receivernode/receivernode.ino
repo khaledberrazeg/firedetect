@@ -20,7 +20,7 @@
 
 
 RF24 radio(7,8);                // nRF24L01(+) radio attached using Getting Started board 
-
+const int buzzer = 9; 
 RF24Network network(radio);      // Network uses that radio
 const uint16_t this_node = 00;    // Address of our node in Octal format ( 04,031, etc)
 const uint16_t other_node = 01;   // Address of the other node in Octal format
@@ -40,6 +40,7 @@ void setup(void)
   SPI.begin();
   radio.begin();
   network.begin(/*channel*/ 90, /*node address*/ this_node);
+    pinMode(buzzer, OUTPUT); 
 }
 
 void loop(void){
@@ -54,8 +55,15 @@ void loop(void){
     network.read(header,&payload,sizeof(payload));
     Serial.print("Received packet #");
     //Serial.print(payload.counter);*
-    Serial.print(payload.messageInt);
-    Serial.print("\r\n");
+    Serial.println(payload.messageInt);
+    if (payload.messageInt>0)
+    {
+        tone(buzzer, 1000); // Send 1KHz sound signal...
+  delay(1000);        // ...for 1 sec
+  noTone(buzzer);     // Stop sound...
+  delay(1000); 
+    }
+    
     //Serial.println(payload.ms);
   }
 }
